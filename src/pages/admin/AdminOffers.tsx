@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { uploadOfferImage } from "../../features/offers/offers.upload";
 import { offersApi } from "../../features/offers/offers.api";
 import { auth } from "../../features/auth/auth.store";
 import type {
@@ -33,39 +34,28 @@ const emptyForm: FormState = {
   includes: "",
 };
 
-async function uploadToCloudinary(file: File): Promise<string> {
-  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME as string;
-  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET as string;
-
-  if (!cloudName || !uploadPreset) {
-    throw new Error("Missing Cloudinary env vars");
-  }
-
-  const form = new FormData();
-  form.append("file", file);
-  form.append("upload_preset", uploadPreset);
-
-  const res = await fetch(
-    `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-    { method: "POST", body: form }
-  );
-
-  if (!res.ok) throw new Error("Upload failed");
-  const data = (await res.json()) as { secure_url?: string };
-  if (!data.secure_url) throw new Error("No URL returned");
-
-  return data.secure_url;
-}
-
 export default function AdminOffers() {
-  const [items, setItems] = useState<Offer[]>(offersApi.list());
+  const [items, setItems] = useState<Offer[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
 
   const [uploading, setUploading] = useState(false);
   const [preview, setPreview] = useState("");
 
+  const [loading, setLoading] = useState(true);
+
   const isEditing = useMemo(() => !!editingId, [editingId]);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await offersApi.list();
+        setItems(data);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
 
   function onChange<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((p) => ({ ...p, [key]: value }));
@@ -95,8 +85,9 @@ export default function AdminOffers() {
     setPreview(o.imageUrl ?? "");
   }
 
-  function remove(id: string) {
-    const next = offersApi.remove(id);
+  async function remove(id: string) {
+    await offersApi.remove(id);
+    const next = await offersApi.list();
     setItems(next);
     if (editingId === id) reset();
   }
@@ -106,7 +97,7 @@ export default function AdminOffers() {
     window.location.href = "/admin/login";
   }
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.title.trim() || !form.destination.trim()) return;
 
@@ -130,12 +121,16 @@ export default function AdminOffers() {
     };
 
     if (isEditing && editingId) {
-      setItems(offersApi.update(editingId, payload));
+      await offersApi.update(editingId, payload);
+      const next = await offersApi.list();
+      setItems(next);
       reset();
       return;
     }
 
-    setItems(offersApi.create(payload));
+    await offersApi.create(payload);
+    const next = await offersApi.list();
+    setItems(next);
     reset();
   }
 
@@ -145,7 +140,7 @@ export default function AdminOffers() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Manage offers</h1>
           <p className="mt-2 text-sm text-neutral-600">
-            Add/edit offers. Upload images (Cloudinary) → direct URL.
+            Add/edit offers. Images upload to Supabase Storage and work on Vercel.
           </p>
         </div>
         <button
@@ -157,6 +152,7 @@ export default function AdminOffers() {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
+        {/* FORM */}
         <form onSubmit={submit} className="rounded-2xl border bg-white p-6">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold">{isEditing ? "Edit offer" : "Add offer"}</h2>
@@ -232,7 +228,7 @@ export default function AdminOffers() {
               </div>
             </div>
 
-            {/* IMAGE UPLOAD */}
+            {/* IMAGE UPLOAD (SUPABASE STORAGE) */}
             <div className="grid gap-2">
               <label className="text-sm font-semibold">Offer photo</label>
               <input
@@ -247,12 +243,13 @@ export default function AdminOffers() {
                   setUploading(true);
 
                   try {
-                    const url = await uploadToCloudinary(file);
+                    const url = await uploadOfferImage(file);
                     onChange("imageUrl", url);
                     setPreview(url);
                   } catch (err) {
                     console.error(err);
-                    alert("Upload failed. Check Cloudinary preset + env.");
+                   alert(`Upload failed: ${String((err as any)?.message ?? err)}`);
+
                   } finally {
                     setUploading(false);
                   }
@@ -274,6 +271,17 @@ export default function AdminOffers() {
               <p className="text-xs text-neutral-500">
                 {uploading ? "Uploading..." : "After upload, image URL is saved automatically."}
               </p>
+
+              {/* Optional manual URL */}
+              <label className="text-xs font-semibold text-neutral-600">
+                Image URL (optional)
+              </label>
+              <input
+                className="w-full rounded-xl border border-neutral-200 px-3 py-2 text-sm"
+                value={form.imageUrl}
+                onChange={(e) => onChange("imageUrl", e.target.value)}
+                placeholder="https://..."
+              />
             </div>
 
             <label className="flex items-center gap-3 text-sm font-semibold">
@@ -307,45 +315,51 @@ export default function AdminOffers() {
 
         {/* LIST */}
         <div className="rounded-2xl border bg-white p-6">
-          <h2 className="font-semibold">Offers ({items.length})</h2>
+          <h2 className="font-semibold">Offers</h2>
 
-          <div className="mt-4 grid gap-3">
-            {items.map((o) => (
-              <div
-                key={o.id}
-                className="rounded-xl border p-4 flex items-start justify-between gap-4"
-              >
-                <div className="min-w-0">
-                  <p className="font-semibold truncate">{o.title}</p>
-                  <p className="text-sm text-neutral-600 mt-1">
-                    {o.destination} • {o.category} • from{" "}
-                    <span className="font-semibold">
-                      {o.priceFrom} {o.currency}
-                    </span>
-                  </p>
+          {loading ? (
+            <p className="mt-4 text-sm text-neutral-600">Loading...</p>
+          ) : (
+            <div className="mt-4 grid gap-3">
+              {items.map((o) => (
+                <div
+                  key={o.id}
+                  className="rounded-xl border p-4 flex items-start justify-between gap-4"
+                >
+                  <div className="min-w-0">
+                    <p className="font-semibold truncate">{o.title}</p>
+                    <p className="text-sm text-neutral-600 mt-1">
+                      {o.destination} • {o.category} • from{" "}
+                      <span className="font-semibold">
+                        {o.priceFrom} {o.currency}
+                      </span>
+                    </p>
+                  </div>
+
+                  <div className="flex shrink-0 gap-2">
+                    <button
+                      className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-neutral-50"
+                      onClick={() => startEdit(o)}
+                      type="button"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50"
+                      onClick={() => remove(o.id)}
+                      type="button"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
+              ))}
 
-                <div className="flex shrink-0 gap-2">
-                  <button
-                    className="rounded-xl border border-neutral-200 bg-white px-3 py-2 text-sm font-semibold hover:bg-neutral-50"
-                    onClick={() => startEdit(o)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="rounded-xl border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50"
-                    onClick={() => remove(o.id)}
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
-
-            {items.length === 0 ? (
-              <p className="text-sm text-neutral-600">No offers yet.</p>
-            ) : null}
-          </div>
+              {items.length === 0 ? (
+                <p className="text-sm text-neutral-600">No offers yet.</p>
+              ) : null}
+            </div>
+          )}
         </div>
       </div>
     </div>

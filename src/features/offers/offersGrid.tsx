@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import OfferCard from "./offerCard";
 import { offersApi } from "../../features/offers/offers.api";
-import type { OfferCategory } from "./Offers.types";
+import type { OfferCategory, Offer } from "../../features/offers/Offers.types";
 
 const FILTERS: Array<{ label: string; value: OfferCategory | "All" }> = [
   { label: "All", value: "All" },
@@ -15,13 +15,30 @@ const FILTERS: Array<{ label: string; value: OfferCategory | "All" }> = [
 
 export default function OffersGrid({ limit }: { limit?: number }) {
   const [filter, setFilter] = useState<OfferCategory | "All">("All");
+  const [offers, setOffers] = useState<Offer[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const offers = useMemo(() => {
-    const all = offersApi.list().filter((o) => o.active);
-    const filtered =
-      filter === "All" ? all : all.filter((o) => o.category === filter);
-    return typeof limit === "number" ? filtered.slice(0, limit) : filtered;
+  useEffect(() => {
+    async function load() {
+      const data = await offersApi.list();
+
+      const activeOffers = data.filter((o) => o.active);
+
+      const filtered =
+        filter === "All"
+          ? activeOffers
+          : activeOffers.filter((o) => o.category === filter);
+
+      setOffers(limit ? filtered.slice(0, limit) : filtered);
+      setLoading(false);
+    }
+
+    load();
   }, [filter, limit]);
+
+  if (loading) {
+    return <p className="text-neutral-600">Loading offers...</p>;
+  }
 
   return (
     <div className="grid gap-5">

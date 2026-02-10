@@ -59,7 +59,7 @@ export default function Footer() {
           <p>
             © {new Date().getFullYear()} Swiss Travel. All rights reserved.
           </p>
-          <p>Fast and simple travel booking.</p>
+          <p>Made By: Muhamedali Halili</p>
         </div>
       </Container>
     </footer>
