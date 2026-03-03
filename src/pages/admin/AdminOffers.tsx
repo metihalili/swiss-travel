@@ -97,7 +97,7 @@ export default function AdminOffers() {
     window.location.href = "/admin/login";
   }
 
-  async function submit(e: React.FormEvent) {
+  async function submit(e: React.SubmitEvent) {
     e.preventDefault();
     if (!form.title.trim() || !form.destination.trim()) return;
 
@@ -119,7 +119,6 @@ export default function AdminOffers() {
       active: form.active,
       includes: includesArr.length ? includesArr : undefined,
     };
-
     if (isEditing && editingId) {
       await offersApi.update(editingId, payload);
       const next = await offersApi.list();
@@ -248,7 +247,7 @@ export default function AdminOffers() {
                     setPreview(url);
                   } catch (err) {
                     console.error(err);
-                   alert(`Upload failed: ${String((err as any)?.message ?? err)}`);
+                    alert(`Upload failed: ${String((err as any)?.message ?? err)}`);
 
                   } finally {
                     setUploading(false);
@@ -305,9 +304,9 @@ export default function AdminOffers() {
             </div>
 
             <button
-              type="submit"
-              className="rounded-xl bg-red-600 px-4 py-3 text-white text-sm font-semibold hover:bg-red-700"
-            >
+                type="submit"
+                className="rounded-xl bg-red-600 px-4 py-3 text-white text-sm font-semibold hover:bg-red-700"
+>
               {isEditing ? "Update offer" : "Add offer"}
             </button>
           </div>

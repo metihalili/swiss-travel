@@ -1,43 +1,65 @@
+import { supabase } from "../../lib/supabase";
 import type { Offer } from "./Offers.types";
-import { storage } from "../../lib/storage";
-import { mockOffers } from "../../data/offers.mock";
 
-const KEY = "swiss_travel_offers_v1";
+export const offersApi = {
+  async list(): Promise<Offer[]> {
+    const { data, error } = await supabase
+      .from("offers")
+      .select("*")
+      .order("created_at", { ascending: false });
 
-function seedIfEmpty() {
-  const existing = storage.get<Offer[]>(KEY, []);
-  if (!existing.length) storage.set(KEY, mockOffers);
-}
+    if (error) throw error;
 
-function list(): Offer[] {
-  seedIfEmpty();
-  return storage.get<Offer[]>(KEY, []);
-}
+    return (data ?? []).map((o: any) => ({
+      id: o.id,
+      title: o.title,
+      destination: o.destination,
+      priceFrom: o.price_from,
+      currency: o.currency,
+      category: o.category,
+      imageUrl: o.image_url,
+      startDate: o.start_date,
+      endDate: o.end_date,
+      active: o.active,
+      includes: o.includes,
+      createdAt: o.created_at,
+    }));
+  },
 
-function save(items: Offer[]) {
-  storage.set(KEY, items);
-  return items;
-}
+  async create(input: Omit<Offer, "id" | "createdAt">) {
+    const { error } = await supabase.from("offers").insert({
+      title: input.title,
+      destination: input.destination,
+      price_from: input.priceFrom,
+      currency: input.currency,
+      category: input.category,
+      image_url: input.imageUrl ?? null,
+      start_date: input.startDate ?? null,
+      end_date: input.endDate ?? null,
+      active: input.active,
+      includes: input.includes ?? null,
+    });
+    if (error) throw error;
+  },
 
-function create(input: Omit<Offer, "id" | "createdAt">) {
-  const items = list();
-  const next: Offer = {
-    ...input,
-    id: crypto.randomUUID(),
-    createdAt: new Date().toISOString(),
-  };
-  return save([next, ...items]);
-}
+  async update(id: string, input: Partial<Omit<Offer, "id" | "createdAt">>) {
+    const { error } = await supabase.from("offers").update({
+      title: input.title,
+      destination: input.destination,
+      price_from: input.priceFrom,
+      currency: input.currency,
+      category: input.category,
+      image_url: input.imageUrl ?? null,
+      start_date: input.startDate ?? null,
+      end_date: input.endDate ?? null,
+      active: input.active,
+      includes: input.includes ?? null,
+    }).eq("id", id);
+    if (error) throw error;
+  },
 
-function update(id: string, patch: Partial<Omit<Offer, "id" | "createdAt">>) {
-  const items = list();
-  const next = items.map((o) => (o.id === id ? { ...o, ...patch } : o));
-  return save(next);
-}
-
-function remove(id: string) {
-  const items = list();
-  return save(items.filter((o) => o.id !== id));
-}
-
-export const offersApi = { list, create, update, remove };
+  async remove(id: string) {
+    const { error } = await supabase.from("offers").delete().eq("id", id);
+    if (error) throw error;
+  },
+};
