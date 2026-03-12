@@ -2,7 +2,6 @@ import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 import Container from "../components/layout/Container";
 import OffersGrid from "../components/offers/OffersGrid";
-
 export default function Home() {
   return (
     <div className="min-h-screen bg-white text-neutral-900">
@@ -213,7 +212,7 @@ export default function Home() {
                   </p>
                 </div>
                 <a
-                  href="https://wa.me/"
+                  href="/contact"
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center justify-center rounded-xl bg-red-600 px-5 py-3 text-white text-sm font-semibold hover:bg-red-700"

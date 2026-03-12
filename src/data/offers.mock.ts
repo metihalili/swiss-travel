@@ -26,4 +26,16 @@ export const mockOffers: Offer[] = [
     includes: ["Hotel", "Optional city tour"],
     createdAt: new Date().toISOString(),
   },
+   {
+    id: "seed-2",
+    title: "Istanbul • Weekend",
+    destination: "Istanbul",
+    priceFrom: 159,
+    currency: "EUR",
+    category: "CityBreak",
+    imageUrl: "/offers/offer2.jpg",
+    active: true,
+    includes: ["Hotel", "Optional city tour"],
+    createdAt: new Date().toISOString(),
+  },
 ];
