@@ -7,8 +7,8 @@ export default function App() {
     <AppProviders>
       <Routes>
         {AppRoutes}
-        <Route path="*" element={<div className="p-6">Not Found</div>} />
-      </Routes>
+      
+      </Routes>  <Route path="*" element={<div className="p-6">Not Found</div>} />
     </AppProviders>
   );
 }

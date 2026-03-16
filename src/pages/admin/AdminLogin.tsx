@@ -33,10 +33,6 @@ export default function AdminLogin() {
     <div className="grid gap-6">
       <div>
         <h1 className="text-2xl font-bold">Admin login</h1>
-        <p className="mt-1 text-neutral-600 text-sm">
-          Default password is <span className="font-semibold">swiss123</span>.
-          You can change it in <code>AdminLogin.tsx</code>.
-        </p>
       </div>
 
       <form
