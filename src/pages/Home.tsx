@@ -29,7 +29,7 @@ export default function Home() {
 
                 <div className="mt-7 flex flex-wrap gap-3">
                   <a
-                    href="https://wa.me/"
+                    href="https://wa.me/+38975216775"
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center justify-center rounded-xl bg-red-600 px-5 py-3 text-white text-sm font-semibold hover:bg-red-700"
@@ -212,7 +212,7 @@ export default function Home() {
                   </p>
                 </div>
                 <a
-                  href="/contact"
+                  href="https://wa.me/+38975216775"
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center justify-center rounded-xl bg-red-600 px-5 py-3 text-white text-sm font-semibold hover:bg-red-700"
